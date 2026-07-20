@@ -1,0 +1,10 @@
+# 敏感文件 - 绝不提交
+.env
+keys.txt
+keys.*.txt
+realgo_counts.json
+*.log
+# 绕过工具(含 venv/代理,不纳入本仓库)
+cloudflare-bypass-2026/
+__pycache__/
+*.pyc
