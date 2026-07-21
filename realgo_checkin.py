@@ -12,7 +12,6 @@ from web3 import Web3
 # RealGo (Binance Wallet x RealGo) 链上签到脚本
 # 合约: 0x4d0571B4e311DB2EF704E4F5212E42150b01494C (BSC)
 # 逻辑: players()检测注册 -> 未注册则 register() -> checkIn()
-# 复用 termmax 的 keys.txt / .env(BSC_RPC, SOCKS_PROXY)
 # ============================================================
 
 CONTRACT_ADDRESS = "0x4d0571B4e311DB2EF704E4F5212E42150b01494C"
@@ -23,7 +22,6 @@ CHAIN_ID = 56
 DEFAULT_RPC = "https://bsc-dataseed.binance.org/"
 DELAY_RANGE = (2, 5)
 GAS_MULTIPLIER = 1.2
-MIN_RECHECK_HOURS = 20  # 距上次签到至少这么久才尝试(配合不同UTC日)
 TARGET_CHECKINS = 7     # 每个钱包签满 7 次即停止
 COUNT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "realgo_counts.json")
 
@@ -86,17 +84,12 @@ def read_player(w3, address):
 
 
 def already_checked_today(last_ts):
-    """按 UTC 自然日判断今天是否已签,并要求距上次>=MIN_RECHECK_HOURS"""
+    """按 UTC 自然日判断今天是否已签。合约本身按 UTC 日判重,
+    estimate_gas 会拦截合约拒绝的情况,所以这里只做同一 UTC 日的快速跳过,
+    只按 UTC 自然日快速跳过,其余交给合约判重。"""
     if last_ts <= 0:
         return False
-    now = int(time.time())
-    last_day = last_ts // 86400
-    now_day = now // 86400
-    if last_day == now_day:
-        return True
-    if (now - last_ts) < MIN_RECHECK_HOURS * 3600:
-        return True
-    return False
+    return (last_ts // 86400) == (int(time.time()) // 86400)
 
 
 def send_tx(w3, private_key, selector, label):
